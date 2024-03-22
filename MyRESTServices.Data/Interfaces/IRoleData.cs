@@ -2,9 +2,8 @@
 
 namespace MyRESTServices.Data.Interfaces
 {
-    public interface IRoleData : ICrudData<Role>
+    public interface IRoleData
     {
         Task<Task> AddUserToRole(string username, int roleId);
-        Task<bool> Delete(int id);
     }
 }

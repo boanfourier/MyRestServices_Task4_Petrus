@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using MyRESTServices.BLL.DTOs;
-using MyRESTServices.BLL.Interfaces;
 using MyRESTServices.BusinessLogic.Interfaces;
 using MyRESTServices.Domain.Models;
 using MyRESTServices.Helpers;
@@ -34,14 +33,24 @@ namespace MyRESTServices.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDTO loginDTO)
         {
-            var user = await _userBLL.Login(loginDTO.Username, loginDTO.Password);
+            var user = await _userBLL.GetUserWithRoles(loginDTO.Username); 
             if (user == null)
             {
                 return Unauthorized();
             }
 
-            var token = _AppSettings.GenerateJwtToken(user);
-            return Ok(new { Token = token });
+            var roles = user.Roles.Select(r => r.RoleName); 
+            var token = _AppSettings.GenerateJwtToken(user, roles);
+
+          
+            var response = new
+            {
+                Token = token,
+                Username = user.Username,
+                Roles = roles
+            };
+
+            return Ok(response);
         }
 
         [HttpPost("changepassword")]

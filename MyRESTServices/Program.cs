@@ -69,6 +69,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminPolicy", policy => policy.RequireRole("admin"));
+    options.AddPolicy("ContributorPolicy", policy => policy.RequireRole("contributor"));
+    options.AddPolicy("ReaderPolicy", policy => policy.RequireRole("reader"));
+});
+
 // Register JwtHelper as a singleton service
 builder.Services.AddSingleton<AppSettings>();
 
@@ -83,7 +90,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); 
+app.UseAuthentication(); // Add this line to enable authentication
 
 app.UseAuthorization();
 

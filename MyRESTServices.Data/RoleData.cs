@@ -37,18 +37,9 @@ namespace MyRESTServices.Data
             }
         }
 
-        public async Task<bool> Delete(int id)
+        public Task<bool> Delete(int id)
         {
-            try
-            {
-                var role = await GetById(id);
-                _context.Roles.Remove(role);
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                throw new ArgumentException(ex.Message);
-            }
+            throw new NotImplementedException();
         }
 
         public async Task<IEnumerable<Role>> GetAll()

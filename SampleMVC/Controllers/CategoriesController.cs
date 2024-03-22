@@ -7,16 +7,19 @@ using SampleMVC.ViewModels;
 namespace SampleMVC.Controllers;
 
 
-[Authorize(Roles = "admin,contributor")]
+//[Authorize(Roles = "admin,contributor")]
 public class CategoriesController : Controller
 {
     private readonly ICategoryServices _categoryServices;
+    private readonly ILogger<CategoriesController> _logger;
+
     //private readonly IValidator<CategoryCreateDTO> _validatorCategoryCreateDTO;
 
     //private UserDTO user = null;
-    public CategoriesController(ICategoryServices categoryServices)
+    public CategoriesController(ICategoryServices categoryServices, ILogger<CategoriesController> logger)
     {
         _categoryServices = categoryServices;
+        _logger = logger;
         //_validatorCategoryCreateDTO = validatorCategoryCreateDTO;
     }
 
@@ -43,24 +46,21 @@ public class CategoriesController : Controller
             ViewData["message"] = TempData["message"];
         }
 
+        //_logger.LogInformation($"pageNumber: {pageNumber}, pageSize: {pageSize}, search: {search}, act: {act}");
         ViewData["search"] = search;
 
         CategoriesViewModel categoriesViewModel = new CategoriesViewModel()
         {
-            Categories = await _categoryServices.GetAllWithPaging(pageNumber, pageSize, search)
+            Categories = await _categoryServices.GetWithPaging(pageNumber, pageSize, search)
         };
 
         //var models = _categoryBLL.GetWithPaging(pageNumber, pageSize, search);
-        var maxsize = (await _categoryServices.GetAll()).Count();
+        var maxsize = await _categoryServices.GetCountCategories(search);
         //return Content($"{pageNumber} - {pageSize} - {search} - {act}");
 
         if (act == "next")
         {
-            if (pageNumber * pageSize < maxsize)
-            {
-                pageNumber += 1;
-            }
-            ViewData["pageNumber"] = pageNumber;
+            pageNumber += 1;
         }
         else if (act == "prev")
         {
@@ -68,13 +68,12 @@ public class CategoriesController : Controller
             {
                 pageNumber -= 1;
             }
-            ViewData["pageNumber"] = pageNumber;
         }
         else
         {
-            ViewData["pageNumber"] = 2;
+            pageNumber = 2;
         }
-
+        ViewData["pageNumber"] = pageNumber;
         ViewData["pageSize"] = pageSize;
         //ViewData["action"] = action;
 
@@ -144,9 +143,8 @@ public class CategoriesController : Controller
         return PartialView("_CreateCategoryPartial");
     }
 
-    [Authorize]
     [HttpPost]
-    public IActionResult Create(SampleMVC.ViewModels.CategoriesViewModel categoriesViewModel)
+    public async Task<IActionResult> Create(SampleMVC.ViewModels.CategoriesViewModel categoriesViewModel)
     {
         /*var result = _validatorCategoryCreateDTO.Validate(categoriesViewModel.CategoryCreateDTO);
 
@@ -160,10 +158,10 @@ public class CategoriesController : Controller
             //categoriesViewModel.Categories = _categoryBLL.GetWithPaging(1, 5, "");
             return View("Index", categoriesViewModel);
         }*/
-
+        _logger.LogWarning($"Log ------------------------  {categoriesViewModel.CategoryCreateDTO.CategoryName}");
         try
         {
-            _categoryServices.Insert(categoriesViewModel.CategoryCreateDTO);
+            await _categoryServices.Insert(categoriesViewModel.CategoryCreateDTO);
             //ViewData["message"] = @"<div class='alert alert-success'><strong>Success!</strong>Add Data Category Success !</div>";
             TempData["message"] = @"<div class='alert alert-success'><strong>Success!</strong>Add Data Category Success !</div>";
         }
@@ -176,7 +174,7 @@ public class CategoriesController : Controller
     }
 
     [Authorize]
-    public async Task <IActionResult>  Edit(int id)
+    public async Task<IActionResult> Edit(int id)
     {
         /*if (HttpContext.Session.GetString("user") == null)
         {
@@ -201,13 +199,12 @@ public class CategoriesController : Controller
         return View(model);
     }
 
-    [Authorize]
     [HttpPost]
-    public async Task <IActionResult> Edit(int id, CategoryUpdateDTO categoryEdit)
+    public async Task<IActionResult> Edit(int id, CategoryUpdateDTO categoryEdit)
     {
         try
         {
-           await _categoryServices.Update(id, categoryEdit);
+            await _categoryServices.Update(id, categoryEdit);
             TempData["message"] = @"<div class='alert alert-success'><strong>Success!</strong>Edit Data Category Success !</div>";
         }
         catch (Exception ex)
@@ -218,8 +215,6 @@ public class CategoriesController : Controller
         return RedirectToAction("GetFromServices");
     }
 
-
-    [Authorize]
     public async Task<IActionResult> Delete(int id)
     {
         /*if (HttpContext.Session.GetString("user") == null)
@@ -245,9 +240,8 @@ public class CategoriesController : Controller
         return View(model);
     }
 
-    [Authorize]
     [HttpPost]
-    public async Task <IActionResult> Delete(int id, CategoryDTO category)
+    public async Task<IActionResult> Delete(int id, CategoryDTO category)
     {
         try
         {

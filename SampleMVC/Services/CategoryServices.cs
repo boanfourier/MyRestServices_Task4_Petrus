@@ -104,11 +104,14 @@ namespace SampleMVC.Services
             }
         }
 
-        public async Task<IEnumerable<CategoryDTO>> GetAllWithPaging(int pageNumber, int pageSize, string name)
+        public async Task<IEnumerable<CategoryDTO>> GetWithPaging(int pageNumber, int pageSize, string name)
         {
-            //_logger.LogInformation(GetBaseUrl());
-            //var httpResponse = await _client.GetAsync($"{GetBaseUrl()}/pageNumber={pageNumber}/pageSize={pageSize}/search={name}");
-            var httpResponse = await _client.GetAsync(GetBaseUrl());
+
+            var paramUrl = $"/GetWithPaging?pageNumber={pageNumber}&pageSize={pageSize}&name={name}";
+
+            _logger.LogInformation($"{paramUrl}");
+            var httpResponse = await _client.GetAsync(GetBaseUrl() + paramUrl);
+
             if (!httpResponse.IsSuccessStatusCode)
             {
                 throw new Exception("Cannot retrieve category");
@@ -119,15 +122,22 @@ namespace SampleMVC.Services
             {
                 PropertyNameCaseInsensitive = true
             });
-            var pagingCategories = categories.OrderBy(c => c.CategoryName)
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize);
-            if (name != null)
+
+            return categories;
+        }
+
+        public async Task<int> GetCountCategories(string name)
+        {
+            var httpResponse = await _client.GetAsync($"{GetBaseUrl()}/GetCountCategories?name={name}");
+
+            if (!httpResponse.IsSuccessStatusCode)
             {
-                pagingCategories.Where(c => c.CategoryName == name);
+                throw new Exception("Cannot retrieve category");
             }
 
-            return pagingCategories;
+            var content = await httpResponse.Content.ReadAsStringAsync();
+
+            return Convert.ToInt32(content);
         }
     }
 }

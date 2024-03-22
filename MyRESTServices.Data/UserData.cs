@@ -1,4 +1,5 @@
-﻿using MyRESTServices.Data.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using MyRESTServices.Data.Interfaces;
 using MyRESTServices.Domain.Models;
 using System;
 using System.Collections.Generic;
@@ -8,58 +9,118 @@ using System.Threading.Tasks;
 
 namespace MyRESTServices.Data
 {
-        public class UserData : IUserData
+    public class UserData : IUserData
+    {
+        private readonly AppDbContext _context;
+        public UserData(AppDbContext context)
         {
-            public Task<Task> ChangePassword(string username, string newPassword)
-            {
-                
-            }
+            _context = context;
+        }
 
-            public Task<bool> Delete(int id)
+        public async Task<Task> ChangePassword(string username, string newPassword)
+        {
+            try
             {
-                throw new NotImplementedException();
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                if (user == null)
+                {
+                    throw new ArgumentException("User not found");
+                }
+                user.Password = Helpers.Md5Hash.GetHash(newPassword);
+                await _context.SaveChangesAsync();
+                return Task.CompletedTask;
             }
-
-            public Task<IEnumerable<User>> GetAll()
+            catch (Exception ex)
             {
-                throw new NotImplementedException();
+                throw new ArgumentException($"{ex.Message}");
             }
+        }
 
-            public Task<IEnumerable<User>> GetAllWithRoles()
+
+
+        public async Task<IEnumerable<User>> GetAll()
+        {
+            var users = await _context.Users.ToListAsync();
+            return users;
+        }
+
+        public async Task<IEnumerable<User>> GetAllWithRoles()
+        {
+            var users = await _context.Users.Include(u => u.Roles).ToListAsync();
+            return users;
+        }
+
+
+        public async Task<User> GetByUsername(string username)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            if (user == null)
             {
-                throw new NotImplementedException();
+                throw new ArgumentException("User not found");
             }
+            return user;
+        }
 
-            public Task<User> GetById(int id)
+        public async Task<User> GetUserWithRoles(string username)
+        {
+            var user = await _context.Users.Include(u => u.Roles).FirstOrDefaultAsync(u => u.Username == username);
+            if (user == null)
             {
-                throw new NotImplementedException();
+                throw new ArgumentException("User not found");
             }
+            return user;
+        }
 
-            public Task<User> GetByUsername(string username)
+        public async Task<User> Insert(User entity)
+        {
+            try
             {
-                throw new NotImplementedException();
+                _context.Users.Add(entity);
+                await _context.SaveChangesAsync();
+                return entity;
             }
-
-            public Task<User> GetUserWithRoles(string username)
+            catch (Exception ex)
             {
-                throw new NotImplementedException();
+                throw new ArgumentException($"{ex.Message}");
             }
+        }
 
-            public Task<User> Insert(User entity)
+        public async Task<User> Login(string username, string password)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username && u.Password == Helpers.Md5Hash.GetHash(password));
+            if (user == null)
             {
-                throw new NotImplementedException();
+                throw new ArgumentException("User not found");
             }
+            return user;
+        }
 
-            public Task<User> Login(string username, string password)
+        public async Task<User> Update(User entity)
+        {
+            try
             {
-                throw new NotImplementedException();
+                var user = await GetByUsername(entity.Username);
+                if (user == null)
+                {
+                    throw new ArgumentException("User not found");
+                }
+                user.FirstName = entity.FirstName;
+                user.LastName = entity.LastName;
+                user.Email = entity.Email;
+                user.Address = entity.Address;
+                user.Telp = entity.Telp;
+                user.SecurityQuestion = entity.SecurityQuestion;
+                user.SecurityAnswer = entity.SecurityAnswer;
+
+                await _context.SaveChangesAsync();
+                return user;
             }
-
-            public Task<User> Update(int id, User entity)
+            catch (Exception ex)
             {
-                throw new NotImplementedException();
+                throw new ArgumentException(ex.Message);
             }
         }
     }
+}
 
 

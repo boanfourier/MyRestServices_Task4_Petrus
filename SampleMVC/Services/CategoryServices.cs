@@ -139,5 +139,10 @@ namespace SampleMVC.Services
 
             return Convert.ToInt32(content);
         }
+
+        public Task<IEnumerable<CategoryDTO>> GetAllWithPaging(int pageNumber, int pageSize, string name)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

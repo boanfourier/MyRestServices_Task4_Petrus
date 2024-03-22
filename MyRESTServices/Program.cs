@@ -1,71 +1,76 @@
-
 using FluentValidation;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using MyRESTServices.BLL;
 using MyRESTServices.BLL.DTOs.Validation;
 using MyRESTServices.BLL.Interfaces;
 using MyRESTServices.Data;
 using MyRESTServices.Data.Interfaces;
-using MyRESTServices.Helpers;
+using System;
 using System.Text;
+using MyRESTServices.Data.Implementations;
+using MyRESTServices.BusinessLogic.Interfaces;
+using MyRESTServices.BusinessLogic.Implementations;
+using MyRESTServices.Helpers;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-//builder.Services.AddControllers();
-
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
 });
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-//appdbcontext
+// Configure database context
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("MyDbConnectionString"));
 });
 
-//DI
+// Register BLL and Data layer services
 builder.Services.AddScoped<ICategoryData, CategoryData>();
 builder.Services.AddScoped<ICategoryBLL, CategoryBLL>();
-builder.Services.AddScoped<IArticleData, ArticleData>();
+builder.Services.AddScoped<IUserBLL, UserBLL>();
 builder.Services.AddScoped<IArticleBLL, ArticleBLL>();
+builder.Services.AddScoped<IArticleData, ArticleData>();
+builder.Services.AddScoped<IUserData, UserData>();
 
-//automapper
+// Configure AutoMapper
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddValidatorsFromAssemblyContaining<CategoryCreateDTOValidator>();
 
-//jwt token
-var appSettingsSection = builder.Configuration.GetSection("AppSettings");
-builder.Services.Configure<AppSettings>(appSettingsSection);
-var appSettings = appSettingsSection.Get<AppSettings>();
-var key = Encoding.ASCII.GetBytes(appSettings.Secret);
+// Configure JWT authentication
+var jwtSettings = builder.Configuration.GetSection("Jwttoken");
+var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"]);
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = true;
-    options.SaveToken = true;
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateAudience = false
-    };
-});
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
 
-
+// Register JwtHelper as a singleton service
+builder.Services.AddSingleton<AppSettings>();
 
 var app = builder.Build();
 
@@ -76,13 +81,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
 app.UseHttpsRedirection();
-app.UseStaticFiles();
 
-app.UseAuthentication();
+app.UseAuthentication(); 
+
 app.UseAuthorization();
-
 
 app.MapControllers();
 

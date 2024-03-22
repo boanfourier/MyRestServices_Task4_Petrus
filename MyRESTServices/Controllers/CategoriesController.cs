@@ -25,6 +25,7 @@ namespace MyRESTServices.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "admin,contributor,reader")]
         public async Task<IEnumerable<CategoryDTO>> Get()
         {
             var results = await _categoryBLL.GetAll();
@@ -44,6 +45,7 @@ namespace MyRESTServices.Controllers
 
 
         [HttpGet("GetWithPaging")]
+
         public async Task<IEnumerable<CategoryDTO>> GetWithPaging(int pageNumber, int pageSize, string name = "")
         {
 
@@ -59,6 +61,7 @@ namespace MyRESTServices.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "admin,contributor")]
         public async Task<IActionResult> Post(int id, CategoryCreateDTO categoryCreateDTO)
         {
             var validateResult = await _validatorCategoryCreateDto.ValidateAsync(categoryCreateDTO);
@@ -81,6 +84,7 @@ namespace MyRESTServices.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "admin,contributor")]
         public async Task<IActionResult> Put(int id, CategoryUpdateDTO categoryUpdateDTO)
         {
             var validateResult = await _validatorCategoryUpdateDto.ValidateAsync(categoryUpdateDTO);
@@ -103,6 +107,7 @@ namespace MyRESTServices.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "admin,contributor")]
         public async Task<IActionResult> Delete(int id)
         {
             try
